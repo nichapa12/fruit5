@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI เช็กทรงซิ่ง | THAI REMIX EDITION</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Kanit & Chakra Petch สำหรับฟอนต์ซิ่งคมๆ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,700;1,700&family=Kanit:ital,wght@0,400;0,600;0,800;1,700;1,900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome สำหรับไอคอน -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- TensorFlow.js & Teachable Machine Image Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Kanit', 'sans-serif'],
+                        racing: ['Chakra Petch', 'Kanit', 'sans-serif'],
+                    },
+                    colors: {
+                        asphalt: '#09090b',
+                        carbon: '#121216',
+                        neonCyan: '#00f0ff',
+                        neonPink: '#ff007f',
+                        neonLime: '#ccff00',
+                        goldChrome: '#ffd700',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow-border': 'glowBorder 3s ease-in-out infinite alternate',
+                    },
+                    keyframes: {
+                        glowBorder: {
+                            '0%': { boxShadow: '0 0 15px rgba(0, 240, 255, 0.3), inset 0 0 10px rgba(0, 240, 255, 0.1)' },
+                            '100%': { boxShadow: '0 0 25px rgba(255, 0, 127, 0.5), inset 0 0 15px rgba(255, 0, 127, 0.2)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* พื้นหลังลายเคฟลาร์ + ไฟนีออนผับ/รถแห่ */
+        body {
+            background-color: #09090b;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(255, 0, 127, 0.14) 0%, transparent 45%),
+                radial-gradient(circle at 85% 85%, rgba(0, 240, 255, 0.14) 0%, transparent 45%),
+                linear-gradient(27deg, #111115 5px, transparent 5px),
+                linear-gradient(207deg, #111115 5px, transparent 5px),
+                linear-gradient(27deg, #18181f 5px, transparent 5px),
+                linear-gradient(207deg, #18181f 5px, transparent 5px),
+                linear-gradient(90deg, #0d0d11 10px, transparent 10px),
+                linear-gradient(#0d0d11 25%, #0a0a0d 25%, #0a0a0d 50%, transparent 50%, transparent 75%, #131318 75%, #131318);
+            background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px, 20px 20px, 20px 20px, 20px 20px, 20px 20px;
+            background-position: 0 0, 0 0, 0 5px, 10px 0, 0 10px, 10px 5px, 0 0, 0 0;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        /* ลายตารางธงหมากรุกซิ่ง */
+        .checkered-bar {
+            background-image: linear-gradient(45deg, #27272a 25%, transparent 25%), 
+                              linear-gradient(-45deg, #27272a 25%, transparent 25%), 
+                              linear-gradient(45deg, transparent 75%, #27272a 75%), 
+                              linear-gradient(-45deg, transparent 75%, #27272a 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        /* เอฟเฟกต์ตัวหนังสือโครเมียม / นีออน */
+        .text-chrome {
+            background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 45%, #94a3b8 50%, #f8fafc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 10px rgba(0, 240, 255, 0.45));
+        }
+
+        .text-neon-pink {
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.8), 0 0 20px rgba(255, 0, 127, 0.5);
+        }
+
+        .text-neon-cyan {
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.5);
+        }
+
+        .text-neon-lime {
+            text-shadow: 0 0 8px rgba(204, 255, 0, 0.8), 0 0 18px rgba(204, 255, 0, 0.4);
+        }
+
+        /* กราฟ Equalizer รถแห่ / 3 ช่า รีมิกซ์ */
+        .eq-bar {
+            width: 5px;
+            border-radius: 9999px;
+            animation: eqBounce 0.6s ease-in-out infinite alternate;
+        }
+        @keyframes eqBounce {
+            0% { height: 6px; opacity: 0.5; }
+            100% { height: 28px; opacity: 1; }
+        }
+        .eq-paused .eq-bar {
+            animation-play-state: paused;
+            height: 8px !important;
+            opacity: 0.4;
+        }
+
+        /* เอฟเฟกต์ลำแสงสแกนบนรูปภาพตอน AI ประมวลผล */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #00f0ff, #ff007f, transparent);
+            box-shadow: 0 0 15px #00f0ff, 0 0 25px #ff007f;
+            animation: scanMove 1.4s linear infinite;
+            z-index: 20;
+        }
+        @keyframes scanMove {
+            0% { top: 0%; }
+            50% { top: 98%; }
+            100% { top: 0%; }
+        }
+
+        /* ปุ่มซิ่งทรงเอ */
+        .btn-racing {
+            background: linear-gradient(135deg, #ff007f 0%, #7928ca 50%, #00f0ff 100%);
+            background-size: 200% auto;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .btn-racing:hover {
+            background-position: right center;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.7), 0 0 35px rgba(0, 240, 255, 0.5);
+        }
+        .btn-racing:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-neonPink selection:text-white">
+
+    <!-- แถบธงหมากรุกด้านบนสุด -->
+    <div class="w-full h-3 checkered-bar border-b border-zinc-800"></div>
+
+    <!-- Header / โซนหัวข้อซิ่งๆ -->
+    <header class="w-full max-w-5xl mx-auto px-4 pt-6 pb-4">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 bg-carbon/90 backdrop-blur-md border border-zinc-800/90 rounded-2xl p-4 sm:p-5 shadow-2xl animate-glow-border">
+            
+            <!-- โลโก้และชื่อเว็บ -->
+            <div class="flex items-center gap-4 text-center md:text-left">
+                <div class="relative flex-shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-neonPink via-purple-600 to-neonCyan p-[2px] shadow-[0_0_20px_rgba(255,0,127,0.5)]">
+                    <div class="w-full h-full bg-asphalt rounded-2xl flex items-center justify-center">
+                        <i class="fa-solid fa-gauge-high text-2xl sm:text-3xl text-neonCyan animate-pulse"></i>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-center md:justify-start gap-2 mb-0.5">
+                        <span class="px-2 py-0.5 text-[11px] font-racing font-bold uppercase tracking-wider bg-neonPink/20 text-neonPink border border-neonPink/50 rounded-md">
+                            THAI REMIX EDITION
+                        </span>
+                        <span class="px-2 py-0.5 text-[11px] font-racing font-bold uppercase tracking-wider bg-neonLime/20 text-neonLime border border-neonLime/50 rounded-md">
+                            V.2026 ดันราง
+                        </span>
+                    </div>
+                    <h1 class="text-2xl sm:text-4xl font-black italic tracking-tight uppercase text-chrome">
+                        AI วิเคราะห์ทรงตึง
+                    </h1>
+                    <p class="text-xs sm:text-sm text-zinc-400 font-medium">
+                        อัปโหลดรูปมาเช็กทรง ระบบกล่อง ECU อัจฉริยะ สับโดดทุกจังหวะ!
+                    </p>
+                </div>
+            </div>
+
+            <!-- สถานะกล่อง ECU (Model Status) + ปุ่มซาวด์เอฟเฟกต์สามช่า/เทอร์โบ -->
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <!-- Equalizer Visualizer -->
+                <div id="eq-visualizer" class="flex items-end gap-1 h-8 px-3 py-1 bg-zinc-900/90 rounded-xl border border-zinc-800" title="จังหวะเบสสามช่า">
+                    <div class="eq-bar bg-neonCyan" style="animation-delay: 0.1s"></div>
+                    <div class="eq-bar bg-neonPink" style="animation-delay: 0.3s"></div>
+                    <div class="eq-bar bg-neonLime" style="animation-delay: 0.2s"></div>
+                    <div class="eq-bar bg-neonCyan" style="animation-delay: 0.4s"></div>
+                    <div class="eq-bar bg-neonPink" style="animation-delay: 0.15s"></div>
+                </div>
+
+                <!-- ปุ่มเปิด/ปิดเสียงเอฟเฟกต์ Turbo & เบสสามช่า -->
+                <button id="sound-toggle-btn" type="button" onclick="toggleSound()" 
+                    class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs sm:text-sm font-bold transition-all cursor-pointer active:scale-95">
+                    <i id="sound-icon" class="fa-solid fa-volume-xmark text-zinc-400 text-base"></i>
+                    <span id="sound-label" class="text-zinc-300">ปิดเสียงเทอร์โบ</span>
+                </button>
+
+                <!-- ป้ายสถานะการโหลดโมเดล -->
+                <div id="ecu-status-badge" class="flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-300 text-xs sm:text-sm font-bold">
+                    <i id="ecu-status-icon" class="fa-solid fa-spinner fa-spin"></i>
+                    <span id="ecu-status-text">กำลังจูนกล่อง ECU AI...</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content: โซนอัปโหลดภาพและแสดงผล -->
+    <main class="w-full max-w-5xl mx-auto px-4 py-4 flex-grow">
+        
+        <!-- กล่องแจ้งเตือน (Custom Toast แทน alert()) -->
+        <div id="toast-box" class="hidden mb-4 p-4 rounded-xl border bg-zinc-900/95 backdrop-blur-md flex items-center justify-between gap-3 transition-all shadow-lg">
+            <div class="flex items-center gap-3">
+                <i id="toast-icon" class="fa-solid fa-triangle-exclamation text-xl text-neonPink"></i>
+                <span id="toast-message" class="text-sm font-medium text-white">ข้อความแจ้งเตือน</span>
+            </div>
+            <button onclick="hideToast()" class="text-zinc-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- ฝั่งซ้าย (7 คอลัมน์): พื้นที่อัปโหลด 1 รูป + กรอบโชว์รูปซิ่งๆ -->
+            <section class="lg:col-span-7 bg-carbon/90 backdrop-blur-md border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+                <!-- แถบตกแต่งมุมบน -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-neonPink shadow-[0_0_8px_#ff007f]"></span>
+                        <span class="w-3 h-3 rounded-full bg-neonLime shadow-[0_0_8px_#ccff00]"></span>
+                        <span class="w-3 h-3 rounded-full bg-neonCyan shadow-[0_0_8px_#00f0ff]"></span>
+                        <h2 class="ml-2 font-racing font-bold italic text-base sm:text-lg tracking-wide text-zinc-200 uppercase">
+                            UPLOAD IMAGE // นำเข้าภาพเช็กทรง
+                        </h2>
+                    </div>
+                    <span class="text-xs font-racing text-zinc-500">MAX 1 FILE</span>
+                </div>
+
+                <!-- Input File ที่ซ่อนไว้ (รับเฉพาะรูปภาพ 1 ไฟล์) -->
+                <input type="file" id="image-upload-input" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+
+                <!-- พื้นที่ Drag & Drop และแสดงตัวอย่างรูปภาพ -->
+                <div id="drop-zone" 
+                    onclick="triggerFileInput()"
+                    class="group relative w-full min-h-[300px] sm:min-h-[360px] rounded-2xl border-2 border-dashed border-zinc-700 hover:border-neonCyan bg-asphalt/80 flex flex-col items-center justify-center p-4 cursor-pointer transition-all duration-300 overflow-hidden">
+                    
+                    <!-- เส้นสแกนตอน AI กำลังประมวลผล -->
+                    <div id="scanner-effect" class="scan-line hidden"></div>
+
+                    <!-- Placeholder ก่อนอัปโหลดรูป -->
+                    <div id="upload-placeholder" class="text-center p-6 transition-transform duration-300 group-hover:scale-105">
+                        <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-zinc-900 border border-zinc-700 group-hover:border-neonCyan group-hover:shadow-[0_0_25px_rgba(0,240,255,0.35)] flex items-center justify-center transition-all">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl sm:text-4xl text-neonCyan"></i>
+                        </div>
+                        <p class="text-lg sm:text-xl font-extrabold italic text-white mb-1">
+                            จิ้มตรงนี้ หรือลากรูปมาวางเลยวัยรุ่น!
+                        </p>
+                        <p class="text-xs sm:text-sm text-zinc-400 max-w-xs mx-auto">
+                            รองรับไฟล์รูปภาพ (JPG, PNG, WEBP) จำนวน 1 ภาพ ระบบ AI จะสแกนให้อัตโนมัติทันที
+                        </p>
+                    </div>
+
+                    <!-- รูปภาพตัวอย่างที่อัปโหลดแล้ว -->
+                    <div id="preview-wrapper" class="hidden relative w-full h-full flex items-center justify-center">
+                        <img id="image-preview" src="" alt="รูปภาพสำหรับวิเคราะห์" 
+                            class="max-h-[340px] w-auto max-w-full rounded-xl object-contain border border-zinc-700/80 shadow-[0_0_30px_rgba(0,0,0,0.9)]">
+                        
+                        <!-- ป้ายมุมภาพ -->
+                        <div class="absolute bottom-3 right-3 px-3 py-1 rounded-lg bg-asphalt/85 backdrop-blur-md border border-neonCyan/50 text-[11px] font-racing font-bold text-neonCyan">
+                            <i class="fa-solid fa-crosshairs mr-1"></i> TARGET LOCKED
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ปุ่มกด Upload และปุ่มสแกนซ้ำ -->
+                <div class="mt-5 flex flex-col sm:flex-row items-center gap-3">
+                    <button type="button" onclick="triggerFileInput()" 
+                        class="btn-racing w-full sm:flex-1 py-3.5 px-6 rounded-xl font-black italic text-base sm:text-lg tracking-wider text-white uppercase shadow-lg flex items-center justify-center gap-3 cursor-pointer">
+                        <i class="fa-solid fa-upload text-xl"></i>
+                        <span id="upload-btn-text">อัปโหลดรูปภาพ (UPLOAD)</span>
+                    </button>
+
+                    <button id="repredict-btn" type="button" onclick="runPrediction()" disabled
+                        class="w-full sm:w-auto py-3.5 px-5 rounded-xl bg-zinc-900 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed border border-zinc-700 hover:border-neonLime text-neonLime font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>เบิ้ลเครื่องสแกนซ้ำ</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- ฝั่งขวา (5 คอลัมน์): หน้าปัดวัดผล AI (Telemetry & Prediction Output) -->
+            <section class="lg:col-span-5 bg-carbon/90 backdrop-blur-md border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col justify-between min-h-[420px]">
+                <div>
+                    <!-- หัวข้อหน้าปัด -->
+                    <div class="flex items-center justify-between border-b border-zinc-800 pb-4 mb-5">
+                        <div>
+                            <h2 class="font-racing font-bold italic text-lg sm:text-xl text-white uppercase flex items-center gap-2">
+                                <i class="fa-solid fa-microchip text-neonPink"></i>
+                                <span>ผลลัพธ์ตัวตึง (AI RESULT)</span>
+                            </h2>
+                            <p class="text-xs text-zinc-400">ค่าความแม่นยำวัดจากกล่อง ECU Teachable Machine</p>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-neonLime">
+                            <i class="fa-solid fa-tachometer-alt text-lg"></i>
+                        </div>
+                    </div>
+
+                    <!-- กล่องสรุปแชมป์อันดับ 1 (Top Prediction Highlight) -->
+                    <div id="top-result-card" class="hidden mb-6 p-4 rounded-2xl bg-gradient-to-r from-neonPink/20 via-purple-900/20 to-neonCyan/20 border border-neonPink/60 shadow-[0_0_25px_rgba(255,0,127,0.2)] relative overflow-hidden">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black italic bg-neonLime text-asphalt uppercase shadow">
+                                <i class="fa-solid fa-crown"></i> ฟันธง! ตัวตึงอันดับ 1
+                            </span>
+                            <span id="top-confidence-badge" class="font-racing font-black text-xl sm:text-2xl text-neonCyan text-neon-cyan">
+                                0%
+                            </span>
+                        </div>
+                        <div id="top-class-name" class="text-2xl sm:text-3xl font-black italic text-white tracking-wide mt-1 break-words">
+                            -
+                        </div>
+                    </div>
+
+                    <!-- รายการแถบเปอร์เซ็นต์ทุกคลาส (Label Container) -->
+                    <div id="label-container" class="space-y-4">
+                        <!-- สถานะรออัปโหลดรูป -->
+                        <div id="empty-result-state" class="py-12 text-center border border-dashed border-zinc-800 rounded-2xl bg-asphalt/50 px-4">
+                            <i class="fa-solid fa-wave-square text-3xl text-zinc-600 mb-3"></i>
+                            <p class="text-sm font-bold text-zinc-300">ยังไม่มีข้อมูลภาพในระบบ</p>
+                            <p class="text-xs text-zinc-500 mt-1">กดปุ่มอัปโหลดรูปทางซ้ายมือ เพื่อวัดรอบเครื่องได้เลยครับลูกพี่!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- แถบข้อมูลด้านล่างกล่องผลลัพธ์ -->
+                <div class="mt-6 pt-4 border-t border-zinc-800/80 flex items-center justify-between text-[11px] font-racing text-zinc-500">
+                    <span>MODEL ID: Kqrvdu5qU</span>
+                    <span class="text-neonCyan/80">TURBO BOOST READY</span>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer สายซิ่ง -->
+    <footer class="w-full max-w-5xl mx-auto px-4 py-5 text-center">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500 border-t border-zinc-800/70 pt-4">
+            <p class="font-medium">
+                POWERED BY <span class="text-zinc-300 font-bold">TEACHABLE MACHINE</span> &bull; จูนระบบโดย <span class="text-neonPink font-bold italic">ช่างเอ สายซิ่งรีมิกซ์</span>
+            </p>
+            <p class="font-racing text-[11px] tracking-wider text-zinc-600">
+                NO WEBCAM &bull; SINGLE IMAGE UPLOAD MODE
+            </p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic: โหลดโมเดล, อัปโหลดภาพ, ทำนายผล และซาวด์เบสสามช่า/เทอร์โบ -->
+    <script type="text/javascript">
+        // ลิงก์โมเดล Teachable Machine ของคุณ
+        const URL = "https://teachablemachine.withgoogle.com/models/Kqrvdu5qU/";
+
+        let model = null;
+        let maxPredictions = 0;
+        let isModelReady = false;
+        let hasUploadedImage = false;
+        let soundEnabled = false;
+        let audioCtx = null;
+        let bassInterval = null;
+
+        // 1. เริ่มโหลดโมเดลอัตโนมัติทันทีที่เปิดหน้าเว็บ
+        window.addEventListener('DOMContentLoaded', () => {
+            initModel();
+            setupDragAndDrop();
+            // ตั้งค่า Equalizer เริ่มต้นให้หยุดนิ่งจนกว่าจะเปิดเสียงหรืออัปโหลดรูป
+            document.getElementById('eq-visualizer').classList.add('eq-paused');
+        });
+
+        async function initModel() {
+            const statusBadge = document.getElementById("ecu-status-badge");
+            const statusIcon = document.getElementById("ecu-status-icon");
+            const statusText = document.getElementById("ecu-status-text");
+
+            try {
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+
+                // โหลดโมเดลและ Metadata
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                isModelReady = true;
+
+                // อัปเดตป้ายสถานะเป็นพร้อมซิ่ง!
+                statusBadge.className = "flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-neonLime/15 border border-neonLime/60 text-neonLime text-xs sm:text-sm font-bold shadow-[0_0_15px_rgba(204,255,0,0.25)]";
+                statusIcon.className = "fa-solid fa-circle-check";
+                statusText.textContent = "ระบบพร้อมซิ่ง! (ECU 100%)";
+
+                // ถ้าผู้ใช้เลือกรูปไว้ก่อนโมเดลโหลดเสร็จ ให้ทำนายทันที
+                if (hasUploadedImage) {
+                    await runPrediction();
+                }
+            } catch (error) {
+                console.error("เกิดข้อผิดพลาดในการโหลดโมเดล:", error);
+                statusBadge.className = "flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-500/20 border border-red-500/50 text-red-400 text-xs sm:text-sm font-bold";
+                statusIcon.className = "fa-solid fa-triangle-exclamation";
+                statusText.textContent = "จูนกล่องไม่สำเร็จ! เช็กเน็ตด่วน";
+                showToast("ไม่สามารถโหลดโมเดล AI ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วรีเฟรชหน้าเว็บครับ");
+            }
+        }
+
+        // 2. ฟังก์ชันเปิดหน้าต่างเลือกไฟล์รูปภาพ
+        function triggerFileInput() {
+            document.getElementById('image-upload-input').click();
+        }
+
+        // 3. ตั้งค่าระบบลากและวางไฟล์ (Drag & Drop)
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.add('border-neonPink', 'bg-zinc-900/90', 'scale-[1.01]');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('border-neonPink', 'bg-zinc-900/90', 'scale-[1.01]');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files && files.length > 0) {
+                    processSelectedFile(files[0]);
+                }
+            }, false);
+        }
+
+        // 4. จัดการเมื่อมีการอัปโหลดไฟล์ผ่านปุ่ม Upload
+        function handleImageUpload(event) {
+            const files = event.target.files;
+            if (files && files.length > 0) {
+                processSelectedFile(files[0]);
+            }
+        }
+
+        // 5. ตรวจสอบและแสดงรูปภาพที่อัปโหลด (จำกัด 1 ภาพ)
+        function processSelectedFile(file) {
+            hideToast();
+
+            // ตรวจสอบว่าเป็นไฟล์รูปภาพหรือไม่
+            if (!file.type.startsWith('image/')) {
+                showToast("เฮ้ยวัยรุ่น! ขอเป็นไฟล์รูปภาพเท่านั้นนะ (JPG, PNG, WEBP)");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgElement = document.getElementById('image-preview');
+                const placeholder = document.getElementById('upload-placeholder');
+                const previewWrapper = document.getElementById('preview-wrapper');
+                const uploadBtnText = document.getElementById('upload-btn-text');
+                const repredictBtn = document.getElementById('repredict-btn');
+
+                // ตั้งค่าแหล่งที่มาของรูปภาพและรอให้โหลดเสร็จสมบูรณ์ก่อนส่งเข้า AI
+                imgElement.onload = async function() {
+                    hasUploadedImage = true;
+                    placeholder.classList.add('hidden');
+                    previewWrapper.classList.remove('hidden');
+                    uploadBtnText.textContent = "เปลี่ยนรูปใหม่ (CHANGE)";
+                    repredictBtn.disabled = false;
+
+                    // เล่นเสียงเทอร์โบ Blow-off ถ้าเปิดเสียงไว้
+                    if (soundEnabled) {
+                        playTurboSound();
+                    }
+
+                    // เริ่มวิเคราะห์ภาพทันที
+                    await runPrediction();
+                };
+
+                imgElement.src = e.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // 6. ประมวลผลรูปภาพด้วยโมเดล Teachable Machine
+        async function runPrediction() {
+            if (!hasUploadedImage) {
+                showToast("อัปโหลดรูปภาพก่อนสิครับลูกพี่!");
+                return;
+            }
+
+            if (!isModelReady || !model) {
+                showToast("ใจเย็นวัยรุ่น กล่อง ECU AI กำลังโหลดอยู่ รอแป๊บเดียว!");
+                return;
+            }
+
+            const imgElement = document.getElementById('image-preview');
+            const scanner = document.getElementById('scanner-effect');
+            const eqVisualizer = document.getElementById('eq-visualizer');
+
+            try {
+                // เปิดเอฟเฟกต์เส้นสแกนและ Equalizer เต้นตามจังหวะ
+                scanner.classList.remove('hidden');
+                eqVisualizer.classList.remove('eq-paused');
+
+                // หน่วงเวลาสั้นๆ 350ms เพื่อให้เห็นเอฟเฟกต์สแกนสุดเท่
+                await new Promise(resolve => setTimeout(resolve, 350));
+
+                // สั่ง AI ทำนายผลจาก <img> element
+                const predictions = await model.predict(imgElement);
+
+                // เรียงลำดับผลลัพธ์จากเปอร์เซ็นต์มากสุดไปน้อยสุด
+                const sortedPredictions = [...predictions].sort((a, b) => b.probability - a.probability);
+
+                renderResults(sortedPredictions);
+            } catch (err) {
+                console.error("Prediction Error:", err);
+                showToast("เกิดข้อผิดพลาดขณะสแกนรูปภาพ ลองอัปโหลดใหม่อีกครั้งครับ");
+            } finally {
+                scanner.classList.add('hidden');
+                if (!soundEnabled) {
+                    eqVisualizer.classList.add('eq-paused');
+                }
+            }
+        }
+
+        // 7. แสดงผลลัพธ์แบบหน้าปัดซิ่ง + แถบสีนีออน
+        function renderResults(predictions) {
+            const labelContainer = document.getElementById('label-container');
+            const topCard = document.getElementById('top-result-card');
+            const topClassName = document.getElementById('top-class-name');
+            const topConfidenceBadge = document.getElementById('top-confidence-badge');
+
+            // ล้างข้อมูลเก่า
+            labelContainer.innerHTML = '';
+
+            if (predictions.length === 0) return;
+
+            // แสดงการ์ดแชมป์อันดับ 1
+            const topHit = predictions[0];
+            const topPercent = (topHit.probability * 100).toFixed(1);
+            topCard.classList.remove('hidden');
+            topClassName.textContent = topHit.className;
+            topConfidenceBadge.textContent = `${topPercent}%`;
+
+            // สร้างแถบวัดระดับทุกคลาส
+            predictions.forEach((item, index) => {
+                const percent = (item.probability * 100).toFixed(1);
+                const isWinner = index === 0;
+
+                // เลือกสีแถบตามอันดับ
+                let barGradient = "from-zinc-500 to-zinc-400";
+                let textColor = "text-zinc-300";
+                let borderStyle = "border-zinc-800/90 bg-asphalt/70";
+
+                if (isWinner) {
+                    barGradient = "from-neonPink via-purple-500 to-neonCyan";
+                    textColor = "text-neonCyan font-black";
+                    borderStyle = "border-neonCyan/50 bg-zinc-900/90 shadow-[0_0_15px_rgba(0,240,255,0.12)]";
+                } else if (index === 1) {
+                    barGradient = "from-neonLime to-emerald-400";
+                    textColor = "text-neonLime font-bold";
+                }
+
+                const row = document.createElement('div');
+                row.className = `p-3.5 rounded-xl border ${borderStyle} transition-all duration-300`;
+                row.innerHTML = `
+                    <div class="flex items-center justify-between mb-2 gap-2">
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="font-racing text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-bold">
+                                #${index + 1}
+                            </span>
+                            <span class="text-sm sm:text-base font-bold text-white truncate">
+                                ${escapeHTML(item.className)}
+                            </span>
+                        </div>
+                        <span class="font-racing text-sm sm:text-base ${textColor} flex-shrink-0">
+                            ${percent}%
+                        </span>
+                    </div>
+                    <div class="w-full h-3 bg-zinc-950 rounded-full overflow-hidden p-[2px] border border-zinc-800">
+                        <div class="h-full rounded-full bg-gradient-to-r ${barGradient} transition-all duration-700 ease-out"
+                             style="width: ${Math.max(2, percent)}%">
+                        </div>
+                    </div>
+                `;
+                labelContainer.appendChild(row);
+            });
+        }
+
+        // 8. ระบบเสียงสังเคราะห์ Web Audio API (จังหวะเบสสามช่า + เสียงเทอร์โบ Blow-off)
+        function toggleSound() {
+            const btn = document.getElementById('sound-toggle-btn');
+            const icon = document.getElementById('sound-icon');
+            const label = document.getElementById('sound-label');
+            const eqVisualizer = document.getElementById('eq-visualizer');
+
+            soundEnabled = !soundEnabled;
+
+            if (soundEnabled) {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                btn.className = "flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-neonPink/20 border border-neonPink text-xs sm:text-sm font-bold transition-all cursor-pointer shadow-[0_0_15px_rgba(255,0,127,0.35)]";
+                icon.className = "fa-solid fa-volume-high text-neonPink text-base animate-bounce";
+                label.className = "text-white";
+                label.textContent = "เบสสามช่า: ON";
+                eqVisualizer.classList.remove('eq-paused');
+
+                playTurboSound();
+                start3ChaBassLoop();
+            } else {
+                btn.className = "flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs sm:text-sm font-bold transition-all cursor-pointer";
+                icon.className = "fa-solid fa-volume-xmark text-zinc-400 text-base";
+                label.className = "text-zinc-300";
+                label.textContent = "ปิดเสียงเทอร์โบ";
+                eqVisualizer.classList.add('eq-paused');
+
+                stop3ChaBassLoop();
+            }
+        }
+
+        // เสียงเทอร์โบตัด (Blow-off Valve) เวลาอัปโหลดรูป
+        function playTurboSound() {
+            if (!audioCtx || !soundEnabled) return;
+            const now = audioCtx.currentTime;
+
+            // เสียงหวีดเทอร์โบขึ้นสูงแล้วตัดฟิ้ว!
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(2800, now + 0.18);
+            osc.frequency.exponentialRampToValueAtTime(300, now + 0.45);
+
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.46);
+        }
+
+        // จังหวะเบสสามช่าเบาๆ สไตล์รถแห่รีมิกซ์
+        function start3ChaBassLoop() {
+            stop3ChaBassLoop();
+            let step = 0;
+            // แพทเทิร์นสามช่า 8 สเต็ป (ตึ้ง - โป๊ะ - ตึ้ง - ตึ้ง - โป๊ะ)
+            const pattern = [1, 0, 0.7, 1, 0, 0.8, 1, 0];
+            bassInterval = setInterval(() => {
+                if (!soundEnabled || !audioCtx) return;
+                const hit = pattern[step % pattern.length];
+                if (hit > 0) {
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(hit === 1 ? 110 : 165, now);
+                    osc.frequency.exponentialRampToValueAtTime(42, now + 0.14);
+
+                    gain.gain.setValueAtTime(0.14 * hit, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.16);
+                }
+                step++;
+            }, 175); // ~170 BPM สไตล์แดนซ์สามช่า
+        }
+
+        function stop3ChaBassLoop() {
+            if (bassInterval) {
+                clearInterval(bassInterval);
+                bassInterval = null;
+            }
+        }
+
+        // ฟังก์ชันช่วยแจ้งเตือนแบบสวยงาม (แทน alert)
+        function showToast(msg) {
+            const box = document.getElementById('toast-box');
+            const text = document.getElementById('toast-message');
+            text.textContent = msg;
+            box.classList.remove('hidden');
+        }
+
+        function hideToast() {
+            document.getElementById('toast-box').classList.add('hidden');
+        }
+
+        // ป้องกัน XSS สำหรับชื่อ Class
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag]));
+        }
+    </script>
+</body>
+</html>
